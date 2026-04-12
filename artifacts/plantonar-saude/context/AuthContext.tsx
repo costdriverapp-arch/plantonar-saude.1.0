@@ -20,8 +20,8 @@ export interface SignUpData {
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
-const USERS_KEY = "@plantonar:users";
-const CURRENT_USER_KEY = "@plantonar:current_user";
+const USERS_KEY = "@plantonar:users_v2";
+const CURRENT_USER_KEY = "@plantonar:current_user_v2";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

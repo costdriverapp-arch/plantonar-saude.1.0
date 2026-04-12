@@ -17,7 +17,7 @@ import { Application, JobVacancy } from "@/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 
-const VACANCIES_KEY = "@plantonar:vacancies";
+const VACANCIES_KEY = "@plantonar:vacancies_v2";
 
 export default function VacancyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

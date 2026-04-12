@@ -14,7 +14,7 @@ import { CustomModal } from "@/components/ui/CustomModal";
 import { useAuth } from "@/context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const USERS_KEY = "@plantonar:users";
+const USERS_KEY = "@plantonar:users_v2";
 
 const statusOptions = ["active", "pending", "blocked", "review", "notified"] as const;
 type UserStatus = typeof statusOptions[number];

@@ -27,11 +27,11 @@ interface AppContextData {
 
 const AppContext = createContext<AppContextData>({} as AppContextData);
 
-const VACANCIES_KEY = "@plantonar:vacancies";
-const APPLICATIONS_KEY = "@plantonar:applications";
-const NOTIFICATIONS_KEY = "@plantonar:notifications";
-const CREDITS_KEY = "@plantonar:credits";
-const USERS_KEY = "@plantonar:users";
+const VACANCIES_KEY = "@plantonar:vacancies_v2";
+const APPLICATIONS_KEY = "@plantonar:applications_v2";
+const NOTIFICATIONS_KEY = "@plantonar:notifications_v2";
+const CREDITS_KEY = "@plantonar:credits_v2";
+const USERS_KEY = "@plantonar:users_v2";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
