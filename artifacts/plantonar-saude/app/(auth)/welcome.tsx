@@ -19,6 +19,16 @@ export default function WelcomeScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: topPad, paddingBottom: bottomPad }]}>
+      <TouchableOpacity
+        style={[styles.admBtn, { top: topPad + 8 }]}
+        onPress={() => router.push("/(auth)/login")}
+        hitSlop={12}
+        activeOpacity={0.7}
+      >
+        <Feather name="settings" size={13} color="rgba(255,255,255,0.45)" />
+        <Text style={styles.admBtnText}>ADM</Text>
+      </TouchableOpacity>
+
       <View style={styles.heroSection}>
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
@@ -164,5 +174,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 4,
     textAlign: "center",
+  },
+  admBtn: {
+    position: "absolute",
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    zIndex: 10,
+  },
+  admBtnText: {
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
   },
 });

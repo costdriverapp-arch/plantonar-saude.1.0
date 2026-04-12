@@ -32,7 +32,11 @@ export default function ProfessionalDashboard() {
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: topPad + 12 }]}>
         <View style={styles.headerTop}>
-          <View style={styles.avatarRow}>
+          <TouchableOpacity
+            style={styles.avatarRow}
+            onPress={() => router.push("/(professional)/profile")}
+            activeOpacity={0.75}
+          >
             <View style={styles.avatar}>
               <Feather name="user" size={22} color="#1e3a8a" />
             </View>
@@ -40,7 +44,8 @@ export default function ProfessionalDashboard() {
               <Text style={styles.greeting}>Olá,</Text>
               <Text style={styles.name}>{firstName}</Text>
             </View>
-          </View>
+            <Feather name="chevron-right" size={14} color="rgba(255,255,255,0.5)" style={{ marginLeft: 2 }} />
+          </TouchableOpacity>
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={styles.bellBtn}

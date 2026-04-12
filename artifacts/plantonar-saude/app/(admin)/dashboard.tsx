@@ -80,9 +80,14 @@ export default function AdminDashboard() {
             <Text style={styles.headerTitle}>Painel Admin</Text>
             <Text style={styles.headerSub}>Gerenciar usuários</Text>
           </View>
-          <TouchableOpacity onPress={() => setLogoutModal(true)} hitSlop={8}>
-            <Feather name="log-out" size={20} color="rgba(255,255,255,0.8)" />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={() => router.push("/(admin)/profile")} hitSlop={8}>
+              <Feather name="user" size={20} color="rgba(255,255,255,0.8)" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setLogoutModal(true)} hitSlop={8}>
+              <Feather name="log-out" size={20} color="rgba(255,255,255,0.8)" />
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={styles.statsRow}>
           <View style={styles.statChip}>
@@ -197,6 +202,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8fafc" },
   header: { backgroundColor: "#581c87", paddingHorizontal: 16, paddingBottom: 16 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
   headerTitle: { color: "#fff", fontSize: 22, fontWeight: "700" },
   headerSub: { color: "rgba(255,255,255,0.6)", fontSize: 13 },
   statsRow: { flexDirection: "row", gap: 10, marginBottom: 12 },

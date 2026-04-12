@@ -5,6 +5,7 @@ export default function AdminLayout() {
   return (
     <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
       <Stack.Screen name="dashboard" />
+      <Stack.Screen name="profile" />
     </Stack>
   );
 }
