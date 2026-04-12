@@ -40,6 +40,10 @@ export default function LoginScreen() {
     setLoading(false);
     if (!result.success) {
       setErrorModal({ visible: true, message: result.error || "Erro ao entrar." });
+    } else {
+      if (result.role === "professional") router.replace("/(professional)/(tabs)/dashboard");
+      else if (result.role === "client") router.replace("/(client)/dashboard");
+      else if (result.role === "admin") router.replace("/(admin)/dashboard");
     }
   };
 

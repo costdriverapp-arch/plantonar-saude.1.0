@@ -6,7 +6,7 @@ interface AuthContextData {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string; role?: string }>;
   signUp: (data: SignUpData) => Promise<{ success: boolean; error?: string }>;
   signInAsAdmin: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { password: _pwd, ...userWithoutPwd } = found;
       setUser(userWithoutPwd as User);
       await AsyncStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userWithoutPwd));
-      return { success: true };
+      return { success: true, role: found.role };
     } catch {
       return { success: false, error: "Erro ao fazer login. Tente novamente." };
     }

@@ -77,7 +77,7 @@ export default function RegisterScreen() {
       const isEmailExists = result.error?.includes("já está cadastrado") ?? false;
       setErrorModal({ visible: true, message: result.error || "Erro ao criar conta.", isEmailExists });
     } else {
-      if (role === "professional") router.replace("/(professional)/dashboard");
+      if (role === "professional") router.replace("/(professional)/(tabs)/dashboard");
       else if (role === "client") router.replace("/(client)/dashboard");
     }
   };
