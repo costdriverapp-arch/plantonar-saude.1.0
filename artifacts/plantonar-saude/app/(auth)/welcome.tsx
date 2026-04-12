@@ -1,9 +1,7 @@
 import { router } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
-  Image,
   Platform,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,21 +9,32 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useAuth } from "@/context/AuthContext";
 
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
+  const { signInAsAdmin } = useAuth();
+  const [loadingAdm, setLoadingAdm] = useState(false);
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
+
+  const handleAdmAccess = async () => {
+    setLoadingAdm(true);
+    await signInAsAdmin();
+    setLoadingAdm(false);
+    router.replace("/(admin)/dashboard");
+  };
 
   return (
     <View style={[styles.container, { paddingTop: topPad, paddingBottom: bottomPad }]}>
       <TouchableOpacity
         style={[styles.admBtn, { top: topPad + 8 }]}
-        onPress={() => router.push("/(auth)/login")}
+        onPress={handleAdmAccess}
         hitSlop={12}
         activeOpacity={0.7}
+        disabled={loadingAdm}
       >
-        <Feather name="settings" size={13} color="rgba(255,255,255,0.45)" />
+        <Feather name={loadingAdm ? "loader" : "settings"} size={13} color="rgba(255,255,255,0.45)" />
         <Text style={styles.admBtnText}>ADM</Text>
       </TouchableOpacity>
 

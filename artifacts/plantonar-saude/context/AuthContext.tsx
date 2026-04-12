@@ -8,6 +8,7 @@ interface AuthContextData {
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signUp: (data: SignUpData) => Promise<{ success: boolean; error?: string }>;
+  signInAsAdmin: () => Promise<void>;
   signOut: () => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<void>;
 }
@@ -103,6 +104,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const signInAsAdmin = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(USERS_KEY);
+      const users: (User & { password: string })[] = stored ? JSON.parse(stored) : [];
+      let admin = users.find((u) => u.role === "admin");
+      if (!admin) {
+        admin = {
+          id: "admin_default",
+          email: "admin@plantonar.com",
+          password: "admin123",
+          role: "admin",
+          firstName: "Administrador",
+          lastName: "",
+          phone: "",
+          whatsapp: "",
+          cpf: "",
+          rg: "",
+          birthDate: "",
+          avatar: undefined,
+          createdAt: new Date().toISOString(),
+          isVerified: true,
+          isBlocked: false,
+          status: "active",
+        };
+        users.push(admin);
+        await AsyncStorage.setItem(USERS_KEY, JSON.stringify(users));
+      }
+      const { password: _pwd, ...adminWithoutPwd } = admin;
+      setUser(adminWithoutPwd as User);
+      await AsyncStorage.setItem(CURRENT_USER_KEY, JSON.stringify(adminWithoutPwd));
+    } catch {}
+  }, []);
+
   const signOut = useCallback(async () => {
     await AsyncStorage.removeItem(CURRENT_USER_KEY);
     setUser(null);
@@ -126,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, isAuthenticated: !!user, signIn, signUp, signOut, updateUser }}
+      value={{ user, isLoading, isAuthenticated: !!user, signIn, signUp, signInAsAdmin, signOut, updateUser }}
     >
       {children}
     </AuthContext.Provider>
