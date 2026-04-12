@@ -32,7 +32,7 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errorModal, setErrorModal] = useState({ visible: false, message: "" });
+  const [errorModal, setErrorModal] = useState({ visible: false, message: "", isEmailExists: false });
 
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
@@ -74,7 +74,11 @@ export default function RegisterScreen() {
     const result = await signUp({ email: email.trim(), password, role });
     setLoading(false);
     if (!result.success) {
-      setErrorModal({ visible: true, message: result.error || "Erro ao criar conta." });
+      const isEmailExists = result.error?.includes("já está cadastrado") ?? false;
+      setErrorModal({ visible: true, message: result.error || "Erro ao criar conta.", isEmailExists });
+    } else {
+      if (role === "professional") router.replace("/(professional)/dashboard");
+      else if (role === "client") router.replace("/(client)/dashboard");
     }
   };
 
@@ -250,10 +254,29 @@ export default function RegisterScreen() {
 
       <CustomModal
         visible={errorModal.visible}
-        onClose={() => setErrorModal({ visible: false, message: "" })}
+        onClose={() => setErrorModal({ visible: false, message: "", isEmailExists: false })}
         title="Atenção"
         message={errorModal.message}
         icon={<Feather name="alert-circle" size={40} color="#ef4444" />}
+        buttons={
+          errorModal.isEmailExists
+            ? [
+                {
+                  label: "Tentar outro e-mail",
+                  onPress: () => setErrorModal({ visible: false, message: "", isEmailExists: false }),
+                  variant: "secondary",
+                },
+                {
+                  label: "Fazer login",
+                  onPress: () => {
+                    setErrorModal({ visible: false, message: "", isEmailExists: false });
+                    router.replace("/(auth)/login");
+                  },
+                  variant: "primary",
+                },
+              ]
+            : undefined
+        }
       />
     </View>
   );
