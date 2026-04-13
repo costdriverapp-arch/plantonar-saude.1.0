@@ -1,8 +1,0 @@
-uploads = []
-outputs = []
-
-[[generated]]
-id = "WJXfZxhfT-Vuri0RrQpS7"
-uri = "file://artifacts/plantonar-saude/assets/images/icon.png"
-type = "image"
-title = "generated_image"

@@ -43,25 +43,29 @@ export default function RegisterScreen() {
   const goNext = () => {
     if (step === 1) {
       if (!role) {
-        setErrorModal({ visible: true, message: "Selecione o tipo de cadastro." });
+        setErrorModal({ visible: true, message: "Selecione o tipo de cadastro.", isEmailExists: false });
         return;
       }
       setStep(2);
     } else if (step === 2) {
       if (!email.trim() || !password || !confirmPassword) {
-        setErrorModal({ visible: true, message: "Preencha todos os campos." });
+        setErrorModal({ visible: true, message: "Preencha todos os campos.", isEmailExists: false });
         return;
       }
       if (password !== confirmPassword) {
-        setErrorModal({ visible: true, message: "As senhas não coincidem." });
+        setErrorModal({ visible: true, message: "As senhas não coincidem.", isEmailExists: false });
         return;
       }
       if (password.length < 6) {
-        setErrorModal({ visible: true, message: "A senha deve ter pelo menos 6 caracteres." });
+        setErrorModal({ visible: true, message: "A senha deve ter pelo menos 6 caracteres.", isEmailExists: false });
         return;
       }
       if (!acceptedTerms) {
-        setErrorModal({ visible: true, message: "Aceite os Termos e Políticas de Privacidade para continuar." });
+        setErrorModal({
+          visible: true,
+          message: "Aceite os Termos e Políticas de Privacidade para continuar.",
+          isEmailExists: false,
+        });
         return;
       }
       handleRegister();
@@ -106,10 +110,7 @@ export default function RegisterScreen() {
         </View>
       </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView
           contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 20 }]}
           keyboardShouldPersistTaps="handled"
@@ -136,9 +137,7 @@ export default function RegisterScreen() {
                   <Text style={styles.roleName}>Profissional de Saúde</Text>
                   <Text style={styles.roleDesc}>Encontre vagas e candidature-se a plantões</Text>
                 </View>
-                {role === "professional" && (
-                  <Feather name="check-circle" size={22} color="#1e40af" />
-                )}
+                {role === "professional" && <Feather name="check-circle" size={22} color="#1e40af" />}
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -157,9 +156,7 @@ export default function RegisterScreen() {
                   <Text style={styles.roleName}>Cliente / Familiar</Text>
                   <Text style={styles.roleDesc}>Publique vagas e encontre profissionais</Text>
                 </View>
-                {role === "client" && (
-                  <Feather name="check-circle" size={22} color="#16a34a" />
-                )}
+                {role === "client" && <Feather name="check-circle" size={22} color="#16a34a" />}
               </TouchableOpacity>
             </View>
           )}
@@ -224,10 +221,7 @@ export default function RegisterScreen() {
                 </View>
                 <Text style={styles.termsText}>
                   Li e aceito os{" "}
-                  <Text
-                    style={styles.termsLink}
-                    onPress={() => router.push("/(auth)/terms")}
-                  >
+                  <Text style={styles.termsLink} onPress={() => router.push("/(auth)/terms")}>
                     Termos e Políticas de Privacidade
                   </Text>
                 </Text>
@@ -244,9 +238,7 @@ export default function RegisterScreen() {
             {loading ? (
               <Feather name="loader" size={20} color="#fff" />
             ) : (
-              <Text style={styles.nextBtnText}>
-                {step === 2 ? "Criar Conta" : "Próximo"}
-              </Text>
+              <Text style={styles.nextBtnText}>{step === 2 ? "Criar Conta" : "Próximo"}</Text>
             )}
           </TouchableOpacity>
         </ScrollView>
