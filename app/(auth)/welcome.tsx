@@ -4,19 +4,23 @@ import {
   Platform,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
+  Pressable,
+  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useAuth } from "@/context/AuthContext";
 
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
   const { signInAsAdmin } = useAuth();
   const [loadingAdm, setLoadingAdm] = useState(false);
+
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
+  const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   const handleAdmAccess = async () => {
     setLoadingAdm(true);
@@ -26,62 +30,78 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: topPad, paddingBottom: bottomPad }]}>
-      <TouchableOpacity
-        style={[styles.admBtn, { top: topPad + 8 }]}
-        onPress={handleAdmAccess}
-        hitSlop={12}
-        activeOpacity={0.7}
-        disabled={loadingAdm}
-      >
-        <Feather name={loadingAdm ? "loader" : "settings"} size={13} color="rgba(255,255,255,0.45)" />
-        <Text style={styles.admBtnText}>ADM</Text>
-      </TouchableOpacity>
+    <LinearGradient
+      colors={["#0D2B5E", "#1565C0", "#1E88E5"]}
+      style={[styles.container, { paddingTop: topPad, paddingBottom: botPad }]}
+    >
+      {/* ADM */}
+      <Pressable style={styles.admBtn} onPress={handleAdmAccess}>
+        <Text style={styles.admText}>{loadingAdm ? "..." : "ADM"}</Text>
+      </Pressable>
 
-      <View style={styles.heroSection}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Feather name="activity" size={52} color="#ffffff" />
+      <View style={styles.content}>
+        <View style={styles.topSection}>
+          <View style={styles.logoContainer}>
+            <View style={styles.logoGlow} />
+            <Image
+              source={require("@/assets/images/logo-plantonar.png")}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
+
+          <View style={styles.divider} />
+
+          <Text style={styles.tagline}>
+            Conectando profissionais{"\n"}da saúde com quem precisa
+          </Text>
         </View>
-        <Text style={styles.appName}>Plantonar Saúde</Text>
-        <Text style={styles.slogan}>Conectando profissionais a quem{"\n"}precisa de cuidados.</Text>
+
+        <View style={styles.cardsRow}>
+          <FeatureCard icon="shield-checkmark" label="Profissionais Verificados" />
+          <FeatureCard icon="flash" label="Contratação Rápida" />
+          <FeatureCard icon="people" label="Milhares de Vagas" />
+        </View>
+
+        <View style={styles.buttons}>
+          <Pressable
+            style={styles.primaryBtn}
+            onPress={async () => {
+              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push("/(auth)/register");
+            }}
+          >
+            <Text style={styles.primaryBtnText}>Criar conta grátis</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.ghostBtn}
+            onPress={async () => {
+              await Haptics.selectionAsync();
+              router.push("/(auth)/login");
+            }}
+          >
+            <Text style={styles.ghostBtnText}>Já tenho conta — Entrar</Text>
+          </Pressable>
+        </View>
       </View>
 
-      <View style={styles.cardsRow}>
-        <View style={[styles.featureCard, { backgroundColor: "rgba(255,255,255,0.12)" }]}>
-          <Feather name="shield" size={24} color="#93c5fd" />
-          <Text style={styles.featureText}>Profissionais verificados</Text>
-        </View>
-        <View style={[styles.featureCard, { backgroundColor: "rgba(255,255,255,0.12)" }]}>
-          <Feather name="clock" size={24} color="#93c5fd" />
-          <Text style={styles.featureText}>Vagas disponíveis 24h</Text>
-        </View>
-        <View style={[styles.featureCard, { backgroundColor: "rgba(255,255,255,0.12)" }]}>
-          <Feather name="heart" size={24} color="#93c5fd" />
-          <Text style={styles.featureText}>Cuidado com qualidade</Text>
-        </View>
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>
+          Desenvolvido por Nexor-tec ® - {new Date().getFullYear()}
+        </Text>
       </View>
+    </LinearGradient>
+  );
+}
 
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={() => router.push("/(auth)/login")}
-          activeOpacity={0.85}
-        >
-          <Feather name="log-in" size={18} color="#1e3a8a" style={{ marginRight: 8 }} />
-          <Text style={styles.primaryBtnText}>Já sou cadastrado</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.secondaryBtn}
-          onPress={() => router.push("/(auth)/register")}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.secondaryBtnText}>Não sou cadastrado</Text>
-        </TouchableOpacity>
+function FeatureCard({ icon, label }: any) {
+  return (
+    <View style={styles.featureCard}>
+      <View style={styles.featureIconBg}>
+        <Ionicons name={icon} size={20} color="#fff" />
       </View>
-
-      <Text style={styles.footer}>Desenvolvido por nexortec - 2026</Text>
+      <Text style={styles.featureLabel}>{label}</Text>
     </View>
   );
 }
@@ -89,117 +109,113 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1e3a8a",
-    alignItems: "center",
+    paddingHorizontal: 24,
     justifyContent: "space-between",
-    paddingHorizontal: 28,
   },
-  heroSection: {
+  content: {
+    flex: 1,
+    justifyContent: "center",
+    gap: 24,
+  },
+  topSection: {
     alignItems: "center",
-    marginTop: 32,
   },
   logoContainer: {
-    marginBottom: 20,
-  },
-  logoCircle: {
-    width: 110,
-    height: 110,
-    borderRadius: 32,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    position: "relative",
+    marginBottom: 16,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.3)",
   },
-  appName: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: "#ffffff",
-    letterSpacing: -0.5,
-    marginBottom: 10,
+  logoGlow: {
+    position: "absolute",
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(255,255,255,0.1)",
   },
-  slogan: {
-    fontSize: 16,
-    color: "rgba(255,255,255,0.75)",
+  logoImage: {
+    width: 180,
+    height: 180,
+  },
+  divider: {
+    width: 48,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#27AE60",
+    marginBottom: 16,
+  },
+  tagline: {
+    fontSize: 15,
+    color: "rgba(255,255,255,0.7)",
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 22,
   },
   cardsRow: {
     flexDirection: "row",
     gap: 10,
-    width: "100%",
   },
   featureCard: {
     flex: 1,
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 16,
     padding: 14,
     alignItems: "center",
     gap: 8,
   },
-  featureText: {
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 11,
-    textAlign: "center",
-    fontWeight: "500",
-    lineHeight: 15,
+  featureIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  actions: {
-    width: "100%",
+  featureLabel: {
+    fontSize: 10,
+    color: "#fff",
+    textAlign: "center",
+  },
+  buttons: {
     gap: 12,
   },
   primaryBtn: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    height: 56,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    paddingVertical: 16,
     alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
   },
   primaryBtnText: {
-    color: "#1e3a8a",
+    color: "#1565C0",
     fontSize: 16,
     fontWeight: "700",
   },
-  secondaryBtn: {
-    borderRadius: 16,
-    height: 56,
+  ghostBtn: {
+    borderRadius: 14,
+    paddingVertical: 14,
     alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.4)",
   },
-  secondaryBtnText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
+  ghostBtnText: {
+    color: "#fff",
+    fontSize: 15,
   },
   footer: {
-    color: "rgba(255,255,255,0.45)",
-    fontSize: 12,
-    marginBottom: 4,
-    textAlign: "center",
+    alignItems: "center",
+    paddingBottom: 4,
+  },
+  footerText: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.4)",
   },
   admBtn: {
     position: "absolute",
     right: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    top: 20,
     zIndex: 10,
   },
-  admBtnText: {
-    color: "rgba(255,255,255,0.45)",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1,
+  admText: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 12,
   },
 });

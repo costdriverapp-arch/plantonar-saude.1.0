@@ -1,9 +1,12 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { Platform, StyleSheet } from "react-native";
+import { Platform } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ProfessionalTabsLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -14,8 +17,8 @@ export default function ProfessionalTabsLayout() {
           backgroundColor: "#ffffff",
           borderTopColor: "#e2e8f0",
           borderTopWidth: 1,
-          height: Platform.OS === "web" ? 84 : 68,
-          paddingBottom: Platform.OS === "web" ? 24 : 10,
+          height: Platform.OS === "web" ? 84 : 58 + insets.bottom,
+          paddingBottom: Platform.OS === "web" ? 24 : Math.max(insets.bottom, 10),
           paddingTop: 8,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: -2 },
@@ -23,7 +26,10 @@ export default function ProfessionalTabsLayout() {
           shadowRadius: 8,
           elevation: 8,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "600",
+        },
       }}
     >
       <Tabs.Screen

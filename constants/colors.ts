@@ -51,4 +51,10 @@ const colors = {
   radius: 12,
 };
 
+export const gradientsByRole = {
+  professional: [colors.light.professionalGradientStart, colors.light.professionalGradientEnd],
+  client: [colors.light.clientGradientStart, colors.light.clientGradientEnd],
+  admin: [colors.light.adminGradientStart, colors.light.adminGradientEnd],
+} as const;
+
 export default colors;

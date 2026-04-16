@@ -7,11 +7,14 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   View,
+  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { AppInput } from "@/components/ui/AppInput";
 import { CustomModal } from "@/components/ui/CustomModal";
 import { useAuth } from "@/context/AuthContext";
@@ -27,6 +30,7 @@ export default function LoginScreen() {
   const [errorModal, setErrorModal] = useState({ visible: false, message: "" });
 
   const passwordRef = useRef<TextInput>(null);
+
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
@@ -35,9 +39,11 @@ export default function LoginScreen() {
       setErrorModal({ visible: true, message: "Por favor, preencha e-mail e senha." });
       return;
     }
+
     setLoading(true);
     const result = await signIn(email.trim(), password);
     setLoading(false);
+
     if (!result.success) {
       setErrorModal({ visible: true, message: result.error || "Erro ao entrar." });
     } else {
@@ -48,90 +54,127 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#f8fafc" }}>
-      <View style={[styles.header, { paddingTop: topPad + 12, backgroundColor: "#1e3a8a" }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
-          <Feather name="arrow-left" size={24} color="#fff" />
-        </TouchableOpacity>
-        <View style={styles.logoRow}>
-          <Feather name="activity" size={32} color="#ffffff" />
-          <Text style={styles.headerTitle}>Plantonar Saúde</Text>
-        </View>
-        <Text style={styles.headerSlogan}>Conectando profissionais a quem{"\n"}precisa de cuidados.</Text>
-      </View>
-
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: "#f8fafc" }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+    >
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: bottomPad + 24 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 20 }]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+        <LinearGradient
+          colors={["#0D2B5E", "#1565C0", "#1E88E5"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.headerGrad, { paddingTop: topPad + 24 }]}
         >
-          <Text style={styles.title}>Entrar na conta</Text>
-          <Text style={styles.subtitle}>Acesse sua conta para continuar</Text>
+          <Pressable
+            onPress={() => router.back()}
+           style={[styles.backBtn, { top: topPad + 10 }]}
+            hitSlop={12}
+          >
+            <View style={styles.backCircle}>
+              <Feather name="arrow-left" size={18} color="#fff" />
+            </View>
+          </Pressable>
 
-          <AppInput
-            label="E-mail"
-            leftIcon="mail"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
-            placeholder="seu@email.com"
+          <Image
+            source={require("@/assets/images/logo-plantonar.png")}
+            style={styles.logoImage}
+            resizeMode="contain"
           />
 
-          <AppInput
-            ref={passwordRef}
-            label="Senha"
-            leftIcon="lock"
-            rightIcon={showPassword ? "eye-off" : "eye"}
-            onRightIconPress={() => setShowPassword(!showPassword)}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-            returnKeyType="done"
-            onSubmitEditing={handleLogin}
-            placeholder="Sua senha"
-          />
+          <Text style={styles.headerTitle}>Bem-vindo de volta</Text>
+          <Text style={styles.headerSub}>Entre com sua conta Plantonar Saúde</Text>
+        </LinearGradient>
 
-          <TouchableOpacity
+        <View style={styles.formArea}>
+          <View style={styles.form}>
+            <AppInput
+              label="E-mail"
+              leftIcon="mail"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              placeholder="seu@email.com"
+            />
+
+            <AppInput
+              ref={passwordRef}
+              label="Senha"
+              leftIcon="lock"
+              rightIcon={showPassword ? "eye-off" : "eye"}
+              onRightIconPress={() => setShowPassword(!showPassword)}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              returnKeyType="done"
+              blurOnSubmit={false}
+              onSubmitEditing={async () => {
+                await Haptics.selectionAsync();
+                handleLogin();
+              }}
+              placeholder="Sua senha"
+            />
+          </View>
+
+          <Pressable
             onPress={() => router.push("/(auth)/forgot-password")}
             style={styles.forgotBtn}
           >
             <Text style={styles.forgotText}>Esqueci minha senha</Text>
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity
-            style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
-            onPress={handleLogin}
+          <Pressable
+            style={({ pressed }) => [
+              styles.loginBtnWrap,
+              pressed && !loading && { opacity: 0.9, transform: [{ scale: 0.985 }] },
+            ]}
+            onPress={async () => {
+              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              handleLogin();
+            }}
             disabled={loading}
-            activeOpacity={0.85}
           >
-            {loading ? (
-              <Feather name="loader" size={20} color="#fff" />
-            ) : (
-              <Text style={styles.loginBtnText}>Entrar</Text>
-            )}
-          </TouchableOpacity>
+            <LinearGradient
+              colors={["#0D2B5E", "#1565C0", "#1E88E5"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
+            >
+              {loading ? (
+                <Feather name="loader" size={20} color="#fff" />
+              ) : (
+                <Text style={styles.loginBtnText}>Entrar</Text>
+              )}
+            </LinearGradient>
+          </Pressable>
 
-          <View style={styles.registerRow}>
-            <Text style={styles.registerText}>Não tenho cadastro</Text>
-            <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
-              <Text style={styles.registerLink}> Criar conta</Text>
-            </TouchableOpacity>
+          <View style={styles.footerRow}>
+            <Text style={styles.footerText}>Ainda não tem conta?</Text>
+            <Pressable onPress={() => router.push("/(auth)/register")}>
+              <Text style={styles.footerLink}> Cadastre-se</Text>
+            </Pressable>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
 
-      <Text style={[styles.footer, { paddingBottom: bottomPad + 4 }]}>
-        Desenvolvido por nexortec - 2026
-      </Text>
+          <View style={styles.termsRow}>
+            <Pressable onPress={() => router.push("/(auth)/terms")}>
+              <Text style={styles.termsLink}>Termos de Uso e Política de Privacidade</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={[styles.nexorFooter, { paddingBottom: bottomPad + 12 }]}>
+          <Text style={styles.nexorText}>Desenvolvido por Nexor-tec ® - {new Date().getFullYear()}</Text>
+        </View>
+      </ScrollView>
 
       <CustomModal
         visible={errorModal.visible}
@@ -140,74 +183,80 @@ export default function LoginScreen() {
         message={errorModal.message}
         icon={<Feather name="alert-circle" size={40} color="#ef4444" />}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 24,
+  headerGrad: {
     alignItems: "center",
+    paddingBottom: 32,
+    paddingHorizontal: 24,
+    position: "relative",
   },
   backBtn: {
     position: "absolute",
     left: 16,
-    top: 0,
-    padding: 8,
-    paddingTop: 0,
+    top: 50,
     zIndex: 10,
-    alignSelf: "flex-start",
-    marginTop: 12,
   },
-  logoRow: {
-    flexDirection: "row",
+  backCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.22)",
     alignItems: "center",
-    gap: 10,
-    marginBottom: 6,
+    justifyContent: "center",
+  },
+  logoImage: {
+    width: 110,
+    height: 110,
+    marginBottom: 12,
   },
   headerTitle: {
-    color: "#fff",
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: "700",
-  },
-  headerSlogan: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 13,
+    color: "#FFFFFF",
     textAlign: "center",
   },
-  content: {
-    paddingHorizontal: 24,
-    paddingTop: 28,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#0f172a",
-    marginBottom: 4,
-  },
-  subtitle: {
+  headerSub: {
     fontSize: 14,
-    color: "#64748b",
-    marginBottom: 24,
+    color: "rgba(255,255,255,0.8)",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  formArea: {
+    padding: 24,
+    gap: 20,
+  },
+  form: {
+    gap: 16,
   },
   forgotBtn: {
     alignSelf: "flex-end",
-    marginBottom: 20,
+    paddingVertical: 2,
     marginTop: -4,
   },
   forgotText: {
-    color: "#1e40af",
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: 13,
+    color: "#1565C0",
+    fontWeight: "600",
+  },
+  loginBtnWrap: {
+    marginTop: 4,
   },
   loginBtn: {
-    backgroundColor: "#1e40af",
-    borderRadius: 14,
     height: 56,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 4,
   },
   loginBtnDisabled: {
     opacity: 0.7,
@@ -217,24 +266,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  registerRow: {
+  footerRow: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 4,
+    alignItems: "center",
   },
-  registerText: {
+  footerText: {
+    fontSize: 14,
     color: "#64748b",
-    fontSize: 14,
   },
-  registerLink: {
-    color: "#1e40af",
+  footerLink: {
     fontSize: 14,
+    color: "#1565C0",
     fontWeight: "600",
   },
-  footer: {
+  termsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  termsLink: {
+    fontSize: 13,
+    color: "#1565C0",
+    fontWeight: "600",
     textAlign: "center",
-    color: "#94a3b8",
+  },
+  nexorFooter: {
+    alignItems: "center",
+    paddingTop: 24,
+    paddingHorizontal: 24,
+  },
+  nexorText: {
     fontSize: 11,
-    paddingTop: 4,
+    color: "#94a3b8",
+    textAlign: "center",
   },
 });
