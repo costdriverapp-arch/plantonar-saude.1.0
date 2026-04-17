@@ -2,6 +2,7 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
@@ -21,12 +22,12 @@
     "hooks/**/*.tsx",
     "types/**/*.ts",
     "types/**/*.tsx",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
     "expo-env.d.ts",
     ".expo/types/**/*.ts"
   ],
   "exclude": [
-    "lib",
-    "lib/**/*",
     "server",
     "scripts",
     "node_modules"
