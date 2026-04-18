@@ -45,30 +45,31 @@ export async function carregarVagasDoCliente(
   authUserId: string
 ): Promise<{ success: true; data: any[] } | { success: false; error: string }> {
   const { data, error } = await supabase
-  .from("vagas")
-  .select(`
-    id,
-    status,
-    titulo_anuncio,
-    titulo_personalizado,
-    nome_paciente,
-    cidade,
-    estado,
-    bairro,
-    data_plantao,
-    horario_inicio,
-    horario_fim,
-    valor_plantao,
-    tipo_vaga,
-    turno,
-    solicitante_nome,
-    tarefas,
-    cuidados,
-    patologias,
-    particularidades
-  `)
-  .eq("auth_user_id", authUserId)
-  .order("created_at", { ascending: false });
+    .from("vagas")
+    .select(`
+      id,
+      status,
+      titulo_anuncio,
+      titulo_personalizado,
+      nome_paciente,
+      cidade,
+      estado,
+      bairro,
+      data_plantao,
+      horario_inicio,
+      horario_fim,
+      valor_plantao,
+      tipo_vaga,
+      turno,
+      solicitante_nome,
+      tarefas,
+      cuidados,
+      patologias,
+      particularidades,
+      important_observations
+    `)
+    .eq("auth_user_id", authUserId)
+    .order("created_at", { ascending: false });
 
   if (error) {
     return {
@@ -90,8 +91,6 @@ export async function carregarVagasPublicasParaProfissional(): Promise<
     .from("vagas")
     .select("*")
     .eq("is_public", true)
-    .eq("pagamento_liberado", true)
-    .eq("status", "ativa")
     .order("published_at", { ascending: false });
 
   if (error) {
@@ -180,6 +179,16 @@ export async function criarVaga(formData: VagaFormData): Promise<CriarVagaResult
   }
 
   const payload = montarPayloadVaga(formData);
+
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("important_observations")
+    .eq("auth_user_id", formData.authUserId)
+    .maybeSingle();
+
+  if (Array.isArray(profileData?.important_observations)) {
+    payload.important_observations = profileData.important_observations;
+  }
 
   const { data: existingRows, error: conflictLoadError } = await supabase
     .from("vagas")
@@ -479,6 +488,37 @@ export async function cancelarVaga(
   };
 }
 
+export async function candidatarNaVaga({
+  vagaId,
+  profissionalId,
+  valorContra,
+}: {
+  vagaId: string;
+  profissionalId: string;
+  valorContra?: number;
+}) {
+  try {
+    const { data, error } = await supabase
+      .from("applications")
+      .insert({
+        vacancy_id: vagaId,
+        professional_id: profissionalId,
+        counter_proposal: valorContra ?? null,
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
 const vagaService = {
   carregarVagasDoCliente,
   carregarVagasPublicasParaProfissional,
@@ -492,6 +532,7 @@ const vagaService = {
   marcarVagaEmAndamento,
   concluirVaga,
   cancelarVaga,
+  candidatarNaVaga,
 };
 
 export default vagaService;

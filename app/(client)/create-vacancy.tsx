@@ -567,6 +567,7 @@ useEffect(() => {
       });
 console.log("CRIAR VAGA RESULT:", result);
       if (!result.success) {
+        
         const modal = vagaUiHelper.buildGenericErrorModal(result.error);
         setValidationModal({
           visible: true,

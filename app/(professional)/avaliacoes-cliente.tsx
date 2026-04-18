@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Platform,
   StyleSheet,
   Text,
   View,
-  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather, Ionicons } from "@expo/vector-icons";
@@ -22,7 +22,7 @@ const TEXT = "#111827";
 const MUTED = "#6b7280";
 const BORDER = "#e5e7eb";
 const STAR = "#f59e0b";
-const CLIENT_PRIMARY = "#16a34a";
+const PROFESSIONAL_PRIMARY = "#2563eb";
 
 function formatRating(value?: number | null) {
   const safe = typeof value === "number" ? value : 0;
@@ -38,7 +38,7 @@ function renderStars(value?: number | null) {
 
     return (
       <Ionicons
-        key={index}
+        key={`star-${index}`}
         name={filled ? "star" : "star-outline"}
         size={14}
         color={STAR}
@@ -49,7 +49,8 @@ function renderStars(value?: number | null) {
 
 function getFirstName(value?: string | null) {
   if (!value) return "Cliente";
-  return value.trim().split(" ")[0];
+  const first = value.trim().split(" ")[0];
+  return first || "Cliente";
 }
 
 function getInitial(value?: string | null) {
@@ -71,10 +72,7 @@ export default function AvaliacoesClienteScreen() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const avatarLetter = useMemo(
-    () => getInitial(clienteNome),
-    [clienteNome]
-  );
+  const avatarLetter = useMemo(() => getInitial(clienteNome), [clienteNome]);
 
   useEffect(() => {
     let active = true;
@@ -91,10 +89,14 @@ export default function AvaliacoesClienteScreen() {
 
       if (reviewsRes.success) {
         setReviews(reviewsRes.data);
+      } else {
+        setReviews([]);
       }
 
       if (statsRes.success) {
         setStats(statsRes.data);
+      } else {
+        setStats(null);
       }
 
       setLoading(false);
@@ -102,6 +104,8 @@ export default function AvaliacoesClienteScreen() {
 
     if (clienteId) {
       carregar();
+    } else {
+      setLoading(false);
     }
 
     return () => {
@@ -115,7 +119,7 @@ export default function AvaliacoesClienteScreen() {
 
       {loading ? (
         <View style={styles.loaderWrap}>
-          <ActivityIndicator size="small" color={CLIENT_PRIMARY} />
+          <ActivityIndicator size="small" color={PROFESSIONAL_PRIMARY} />
         </View>
       ) : (
         <FlatList
@@ -125,8 +129,7 @@ export default function AvaliacoesClienteScreen() {
           contentContainerStyle={{
             paddingHorizontal: 16,
             paddingTop: 14,
-            paddingBottom:
-              (Platform.OS === "web" ? 34 : insets.bottom) + 28,
+            paddingBottom: (Platform.OS === "web" ? 34 : insets.bottom) + 28,
           }}
           ListHeaderComponent={
             <View style={styles.profileCard}>
@@ -135,10 +138,8 @@ export default function AvaliacoesClienteScreen() {
                   <Text style={styles.avatarText}>{avatarLetter}</Text>
                 </View>
 
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>
-                    {getFirstName(clienteNome)}
-                  </Text>
+                <View style={styles.profileInfo}>
+                  <Text style={styles.name}>{getFirstName(clienteNome)}</Text>
 
                   <View style={styles.locationRow}>
                     <Feather name="map-pin" size={14} color={MUTED} />
@@ -175,9 +176,7 @@ export default function AvaliacoesClienteScreen() {
                 size={28}
                 color={colors.light.border}
               />
-              <Text style={styles.emptyTitle}>
-                Nenhuma avaliação ainda
-              </Text>
+              <Text style={styles.emptyTitle}>Nenhuma avaliação ainda</Text>
               <Text style={styles.emptyText}>
                 As avaliações aparecerão aqui.
               </Text>
@@ -186,12 +185,10 @@ export default function AvaliacoesClienteScreen() {
           renderItem={({ item }) => {
             return (
               <View style={styles.card}>
-                <Text style={styles.roleText}>
-                  {item.cargo || "Avaliação"}
-                </Text>
+                <Text style={styles.roleText}>{item.cargo || "Avaliação"}</Text>
 
-                <View style={styles.starsRow}>
-                  {renderStars(item.nota)}
+                <View style={styles.reviewRatingRow}>
+                  <View style={styles.starsRow}>{renderStars(item.nota)}</View>
                   <Text style={styles.ratingSmall}>
                     {formatRating(item.nota)}
                   </Text>
@@ -202,9 +199,7 @@ export default function AvaliacoesClienteScreen() {
                 </Text>
 
                 {!!item.comentario && (
-                  <Text style={styles.commentExtra}>
-                    {item.comentario}
-                  </Text>
+                  <Text style={styles.commentExtra}>{item.comentario}</Text>
                 )}
               </View>
             );
@@ -216,7 +211,10 @@ export default function AvaliacoesClienteScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
+  container: {
+    flex: 1,
+    backgroundColor: BG,
+  },
 
   loaderWrap: {
     flex: 1,
@@ -243,15 +241,19 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: CLIENT_PRIMARY,
+    backgroundColor: PROFESSIONAL_PRIMARY,
     alignItems: "center",
     justifyContent: "center",
   },
 
   avatarText: {
-    color: "#fff",
+    color: "#ffffff",
     fontSize: 22,
     fontWeight: "800",
+  },
+
+  profileInfo: {
+    flex: 1,
   },
 
   name: {
@@ -262,22 +264,26 @@ const styles = StyleSheet.create({
 
   locationRow: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginTop: 4,
   },
 
   locationText: {
+    flex: 1,
     fontSize: 13,
     color: MUTED,
   },
 
   ratingBox: {
     alignItems: "flex-end",
+    justifyContent: "center",
   },
 
   ratingValue: {
     fontSize: 16,
     fontWeight: "800",
+    color: TEXT,
     marginTop: 4,
   },
 
@@ -312,13 +318,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: TEXT,
-    marginBottom: 6,
+    marginBottom: 8,
+  },
+
+  reviewRatingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
 
   ratingSmall: {
-    marginLeft: 6,
     fontSize: 13,
     fontWeight: "700",
+    color: TEXT,
   },
 
   comment: {
@@ -326,12 +338,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: TEXT,
     fontWeight: "600",
+    lineHeight: 21,
   },
 
   commentExtra: {
     marginTop: 6,
     fontSize: 14,
     color: MUTED,
+    lineHeight: 21,
   },
 
   emptyCard: {

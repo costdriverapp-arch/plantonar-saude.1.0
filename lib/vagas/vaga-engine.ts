@@ -135,6 +135,8 @@ export type VagaPayload = {
 
   assinatura_no_momento: boolean;
   valor_cobranca_publicacao: number;
+
+  important_observations?: string[] | null;
 };
 
 function cleanText(value: string | null | undefined): string {
@@ -283,5 +285,7 @@ export function montarPayloadVaga(data: VagaFormData): VagaPayload {
       typeof data.valorCobrancaPublicacao === "number"
         ? data.valorCobrancaPublicacao
         : 19.9,
+
+    important_observations: null,
   };
 }

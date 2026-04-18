@@ -1,5 +1,5 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import { JobVacancy } from "@/types";
@@ -13,98 +13,156 @@ interface VacancyCardProps {
   compact?: boolean;
 }
 
-function formatCurrency(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+function formatCurrency(value?: number | string | null): string {
+  const numericValue =
+    typeof value === "string" ? Number(value.replace(",", ".")) : value;
 
-function formatShiftDate(value?: string): string {
-  if (!value) return "";
-
-  const raw = String(value).trim();
-
-  const weekdays = [
-    "Domingo",
-    "Segunda-feira",
-    "Terça-feira",
-    "Quarta-feira",
-    "Quinta-feira",
-    "Sexta-feira",
-    "Sábado",
-  ];
-
-  const brMatch = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (brMatch) {
-    const [, dd, mm, yyyy] = brMatch;
-    const date = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
-    if (!Number.isNaN(date.getTime())) {
-      return `${dd}/${mm}/${yyyy} - ${weekdays[date.getDay()]}`;
-    }
-    return raw;
+  if (numericValue == null || Number.isNaN(numericValue)) {
+    return "R$ 0,00";
   }
 
-  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (isoMatch) {
-    const [, yyyy, mm, dd] = isoMatch;
-    const date = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
-    if (!Number.isNaN(date.getTime())) {
-      return `${dd}/${mm}/${yyyy} - ${weekdays[date.getDay()]}`;
-    }
-    return raw;
-  }
-
-  return raw;
+  return Number(numericValue).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 }
 
-function getShiftLabel(vacancy: JobVacancy): "Diurno" | "Noturno" {
-  const raw =
-    String(
-      (vacancy as any)?.shiftType ??
-        (vacancy as any)?.period ??
-        (vacancy as any)?.turno ??
-        (vacancy as any)?.dayPeriod ??
-        ""
-    )
-      .trim()
-      .toLowerCase();
+function formatDate(value?: string) {
+  if (!value) return "--";
 
-  if (raw.includes("not")) return "Noturno";
-  if (raw.includes("diu") || raw.includes("day")) return "Diurno";
+  const raw = value.includes("T") ? value.split("T")[0] : value;
+  const [year, month, day] = raw.split("-");
 
-  const hours = String((vacancy as any)?.workHours ?? "");
-  const startMatch = hours.match(/(\d{1,2})[:hH]?(\d{2})?/);
+  if (!year || !month || !day) return value;
 
-  if (startMatch) {
-    const hour = Number(startMatch[1]);
-    if (!Number.isNaN(hour)) {
-      return hour >= 18 || hour <= 5 ? "Noturno" : "Diurno";
-    }
-  }
-
-  return "Diurno";
+  return `${day}/${month}/${year}`;
 }
 
-function getWorkTypeLabel(vacancy: JobVacancy): "Plantão" | "Fixo" {
-  const raw =
-    String(
-      (vacancy as any)?.workType ??
-        (vacancy as any)?.vacancyType ??
-        (vacancy as any)?.type ??
-        (vacancy as any)?.jobType ??
-        ""
-    )
-      .trim()
-      .toLowerCase();
+function formatHour(value?: string) {
+  if (!value) return "--";
+  return value.slice(0, 5);
+}
+
+function getWorkHours(vacancy: JobVacancy) {
+  const inicio = formatHour(vacancy.horario_inicio);
+  const fim = formatHour(vacancy.horario_fim);
+
+  if (inicio === "--" && fim === "--") return "--";
+  if (inicio !== "--" && fim !== "--") return `Horário: ${inicio} às ${fim}`;
+  return `Horário: ${inicio !== "--" ? inicio : fim}`;
+}
+
+function getCardTitle(vacancy: JobVacancy) {
+  return (
+    vacancy.titulo_personalizado ||
+    vacancy.titulo_anuncio ||
+    vacancy.nome_paciente ||
+    "Vaga sem título"
+  );
+}
+
+function getDescriptionText(vacancy: JobVacancy) {
+  return (
+    vacancy.descricao ||
+    (vacancy as any).description ||
+    (vacancy as any).descricao_vaga ||
+    (vacancy as any).descricao_anuncio ||
+    (vacancy as any).observacoes ||
+    "--"
+  );
+}
+
+function getTasksText(vacancy: JobVacancy) {
+  return (
+    vacancy.tarefas ||
+    vacancy.cuidados ||
+    (vacancy as any).tasks ||
+    (vacancy as any).tarefas_descricao ||
+    (vacancy as any).atividades ||
+    "--"
+  );
+}
+
+function getTipoBadgeText(vacancy: JobVacancy) {
+  if (vacancy.tipo_vaga && vacancy.turno) {
+    return `${vacancy.tipo_vaga} · ${vacancy.turno}`;
+  }
+
+  return vacancy.tipo_vaga || vacancy.turno || "--";
+}
+
+function getStatusBadgeInfo(status?: string) {
+  const normalized = (status || "").toLowerCase().trim();
+
+  if (normalized === "rascunho") {
+    return {
+      label: "Rascunho",
+      textColor: "#c2410c",
+      backgroundColor: "#ffedd5",
+      borderColor: "#fdba74",
+      shadowColor: "#fb923c",
+    };
+  }
 
   if (
-    raw.includes("fixo") ||
-    raw.includes("clt") ||
-    raw.includes("efetivo") ||
-    raw.includes("mensal")
+    normalized === "ativa" ||
+    normalized === "publicada" ||
+    normalized === "publicado" ||
+    normalized === "open"
   ) {
-    return "Fixo";
+    return {
+      label: "Publicado",
+      textColor: "#166534",
+      backgroundColor: "#dcfce7",
+      borderColor: "#86efac",
+      shadowColor: "#4ade80",
+    };
   }
 
-  return "Plantão";
+  if (
+    normalized === "encerrada" ||
+    normalized === "cancelada" ||
+    normalized === "cancelado" ||
+    normalized === "expirada" ||
+    normalized === "preenchida" ||
+    normalized === "filled"
+  ) {
+    return {
+      label: "Encerrada",
+      textColor: "#b91c1c",
+      backgroundColor: "#fee2e2",
+      borderColor: "#fca5a5",
+      shadowColor: "#f87171",
+    };
+  }
+
+  if (normalized === "em_andamento") {
+    return {
+      label: "Em andamento",
+      textColor: "#7c3aed",
+      backgroundColor: "#ede9fe",
+      borderColor: "#c4b5fd",
+      shadowColor: "#a78bfa",
+    };
+  }
+
+  if (normalized === "concluida" || normalized === "concluída") {
+    return {
+      label: "Concluída",
+      textColor: "#0f766e",
+      backgroundColor: "#ccfbf1",
+      borderColor: "#99f6e4",
+      shadowColor: "#5eead4",
+    };
+  }
+
+  return {
+    label: status || "--",
+    textColor: "#475569",
+    backgroundColor: "#f1f5f9",
+    borderColor: "#cbd5e1",
+    shadowColor: "#94a3b8",
+  };
 }
 
 export function VacancyCard({
@@ -115,194 +173,278 @@ export function VacancyCard({
   compact = false,
 }: VacancyCardProps) {
   const colors = useColors();
-  const shiftLabel = getShiftLabel(vacancy);
-  const workTypeLabel = getWorkTypeLabel(vacancy);
+  const [expanded, setExpanded] = useState(false);
+
+  const title = useMemo(() => getCardTitle(vacancy), [vacancy]);
+  const description = useMemo(() => getDescriptionText(vacancy), [vacancy]);
+  const tasks = useMemo(() => getTasksText(vacancy), [vacancy]);
+  const statusBadge = useMemo(
+    () => getStatusBadgeInfo((vacancy as any).status),
+    [vacancy]
+  );
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <View style={styles.topRow}>
-        <Text style={[styles.title, { color: colors.foreground }]} numberOfLines={2}>
-          {vacancy.title}
-        </Text>
-        <Text style={[styles.value, { color: colors.success }]}>
-          {formatCurrency(vacancy.value)}
-        </Text>
+    <TouchableOpacity
+      activeOpacity={0.9}
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.card,
+          borderColor: "#e9d5ff",
+        },
+      ]}
+      onPress={() => setExpanded((prev) => !prev)}
+    >
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
+
+        <Text style={styles.price}>{formatCurrency(vacancy.valor_plantao)}</Text>
       </View>
 
       <View style={styles.badgesRow}>
-        <View style={[styles.badge, { backgroundColor: colors.accent }]}>
-          <Feather name="briefcase" size={12} color={colors.primary} />
-          <Text style={[styles.badgeText, { color: colors.primary }]}>
-            {vacancy.profession} · {workTypeLabel}
-          </Text>
+        <View style={styles.badge}>
+          <Feather name="briefcase" size={14} color="#7c3aed" />
+          <Text style={styles.badgeText}>{getTipoBadgeText(vacancy)}</Text>
         </View>
 
-        <View style={[styles.badge, { backgroundColor: "#EEF2FF" }]}>
-          <Feather
-            name={shiftLabel === "Noturno" ? "moon" : "sun"}
-            size={12}
-            color="#1e40af"
-          />
-          <Text style={[styles.badgeText, { color: "#1e40af" }]}>{shiftLabel}</Text>
+        <View style={styles.badge}>
+          <Feather name="moon" size={14} color="#7c3aed" />
+          <Text style={styles.badgeText}>{vacancy.turno || "--"}</Text>
         </View>
       </View>
 
       <View style={styles.infoRow}>
-        <Feather name="map-pin" size={14} color={colors.mutedForeground} />
-        <Text style={[styles.cityText, { color: colors.foreground }]}>
-          {vacancy.city}/{vacancy.state}
+        <Feather name="map-pin" size={16} color="#6b7280" />
+        <Text style={[styles.infoMain, { color: colors.foreground }]}>
+          {[vacancy.cidade, vacancy.estado].filter(Boolean).join("/") || "--"}
         </Text>
       </View>
 
       <View style={styles.infoRow}>
-        <Feather name="map" size={14} color={colors.mutedForeground} />
-        <Text style={[styles.infoText, { color: colors.mutedForeground }]}>
-          Bairro: {vacancy.neighborhood} | CEP: {vacancy.cep}
-        </Text>
+        <Feather name="map" size={16} color="#6b7280" />
+        <Text style={styles.infoSub}>Bairro: {vacancy.bairro || "--"}</Text>
       </View>
 
       <View style={styles.infoRow}>
-        <Feather name="calendar" size={14} color={colors.mutedForeground} />
-        <Text style={[styles.infoText, { color: colors.mutedForeground }]}>
-          {formatShiftDate(vacancy.shiftDate)}
-        </Text>
+        <Feather name="calendar" size={16} color="#6b7280" />
+        <Text style={styles.infoSub}>{formatDate(vacancy.data_plantao)}</Text>
       </View>
 
-      <View style={styles.infoRow}>
-        <Feather name="clock" size={14} color={colors.mutedForeground} />
-        <Text style={[styles.infoText, { color: colors.mutedForeground }]}>
-          Horário: {vacancy.workHours}
-        </Text>
+      <View>
+        <View style={styles.statusLineRow}>
+          <View style={styles.statusLineLeft}>
+            <Feather name="clock" size={16} color="#6b7280" />
+            <Text style={styles.infoSub}>{getWorkHours(vacancy)}</Text>
+          </View>
+
+          <View
+            style={[
+              styles.statusBadge,
+              {
+                backgroundColor: statusBadge.backgroundColor,
+                borderColor: statusBadge.borderColor,
+                shadowColor: statusBadge.shadowColor,
+              },
+            ]}
+          >
+            <Text
+              style={[styles.statusBadgeText, { color: statusBadge.textColor }]}
+            >
+              {statusBadge.label}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.divider} />
       </View>
 
-      {!compact && (
+      {!compact && expanded && (
         <>
-          <Text style={[styles.descLabel, { color: colors.foreground }]}>Descrição</Text>
-          <Text style={[styles.desc, { color: colors.mutedForeground }]} numberOfLines={3}>
-            {vacancy.description}
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            Descrição da Vaga
+          </Text>
+          <Text style={styles.description}>{description}</Text>
+
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            Patologias
+          </Text>
+          <Text style={styles.description}>
+            {(vacancy as any).patologias || "--"}
           </Text>
 
-          <Text style={[styles.descLabel, { color: colors.foreground }]}>Tarefas</Text>
-          <Text style={[styles.desc, { color: colors.mutedForeground }]} numberOfLines={3}>
-            {vacancy.tasks}
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            Cuidados
           </Text>
+          <Text style={styles.description}>
+            {(vacancy as any).cuidados || "--"}
+          </Text>
+
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            Particularidades
+          </Text>
+          <Text style={styles.description}>
+            {(vacancy as any).particularidades || "--"}
+          </Text>
+
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            Informações importantes
+          </Text>
+          <Text style={styles.description}>
+            {(vacancy as any).important_observations?.length
+              ? (vacancy as any).important_observations.join(" • ")
+              : "--"}
+          </Text>
+
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            Tarefas
+          </Text>
+          <Text style={styles.description}>{tasks}</Text>
+
+          {showActions && (
+            <View style={styles.actionsRow}>
+              <PrimaryButton
+                title="Contraproposta"
+                onPress={onCounterProposal || (() => {})}
+                variant="secondary"
+                style={styles.actionBtn}
+              />
+
+              <PrimaryButton
+                title="Candidatar"
+                onPress={onApply || (() => {})}
+                style={styles.actionBtn}
+              />
+            </View>
+          )}
         </>
       )}
-
-      {showActions && (
-        <View style={styles.actions}>
-          <PrimaryButton
-            title="Contraproposta"
-            onPress={onCounterProposal || (() => {})}
-            variant="secondary"
-            style={styles.actionBtn}
-          />
-
-          <PrimaryButton
-            title="Candidatar-se"
-            onPress={onApply || (() => {})}
-            style={styles.actionBtn}
-          />
-        </View>
-      )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
-    borderWidth: 1,
     marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
   },
 
-  topRow: {
+  header: {
     flexDirection: "row",
-    alignItems: "flex-start",
     justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 10,
     gap: 12,
-    marginBottom: 6,
   },
 
   title: {
     flex: 1,
-    fontSize: 17,
-    fontWeight: "700",
-    lineHeight: 22,
+    fontSize: 18,
+    fontWeight: "800",
   },
 
-  value: {
-    fontSize: 16,
-    fontWeight: "700",
-    textAlign: "right",
+  price: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#7c3aed",
   },
 
   badgesRow: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
     gap: 8,
-    marginBottom: 10,
+    marginBottom: 12,
   },
 
   badge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    maxWidth: "48%",
+    gap: 6,
+    backgroundColor: "#f3e8ff",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
 
   badgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "600",
-    flexShrink: 1,
+    color: "#7c3aed",
   },
 
   infoRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 6,
-    marginBottom: 5,
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
   },
 
-  cityText: {
+  infoMain: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
+  infoSub: {
     fontSize: 14,
-    fontWeight: "600",
-    flex: 1,
-    lineHeight: 19,
+    color: "#6b7280",
   },
 
-  infoText: {
+  statusLineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  statusLineLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+
+  statusBadge: {
+    minHeight: 30,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+
+  statusBadgeText: {
     fontSize: 12,
-    flex: 1,
-    lineHeight: 18,
+    fontWeight: "700",
   },
 
-  descLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    marginTop: 10,
+  divider: {
+    height: 1,
+    backgroundColor: "#e9d5ff",
+    marginVertical: 12,
+  },
+
+  sectionTitle: {
+    marginTop: 12,
     marginBottom: 4,
+    fontSize: 14,
+    fontWeight: "700",
   },
 
-  desc: {
-    fontSize: 13,
-    lineHeight: 18,
+  description: {
+    fontSize: 14,
+    color: "#6b7280",
+    lineHeight: 22,
   },
 
-  actions: {
+  actionsRow: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 14,
+    marginTop: 16,
   },
 
   actionBtn: {
