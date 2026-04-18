@@ -238,11 +238,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }
 
             const { data: existente, error: existenteError } = await supabase
-              .from("vaga_candidaturas")
-              .select("id")
-              .eq("vaga_id", vacancyId)
-              .eq("profissional_auth_user_id", user.id)
-              .maybeSingle();
+  .from("vaga_candidaturas")
+  .select("id, status")
+  .eq("vaga_id", vacancyId)
+  .eq("profissional_auth_user_id", user.id)
+  .maybeSingle();
 
             if (existenteError) {
               return {
@@ -251,9 +251,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               };
             }
 
-            if (existente) {
-              return { success: false, error: "Você já se candidatou a esta vaga." };
-            }
+           if (existente) {
+  if (existente.status === "cancelled") {
+    const { error: updateError } = await supabase
+      .from("vaga_candidaturas")
+      .update({
+        status: "pending",
+        valor_contraproposta: counterProposal ?? null,
+      })
+      .eq("id", existente.id)
+      .eq("profissional_auth_user_id", user.id);
+
+    if (updateError) {
+      return {
+        success: false,
+        error: "Erro ao reativar candidatura.",
+      };
+    }
+
+    setCredits((prev) => (prev ?? 0) - 1);
+    await loadMyApplications();
+
+    return { success: true };
+  }
+
+  return { success: false, error: "Você já se candidatou a esta vaga." };
+}
 
             const { error: insertError } = await supabase
               .from("vaga_candidaturas")
@@ -283,7 +306,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         },
 
-        cancelApplication: async () => {},
+        cancelApplication: async (applicationId: string) => {
+  try {
+    if (!user?.id) return;
+
+    const { data, error } = await supabase
+      .from("vaga_candidaturas")
+      .select("*")
+      .eq("id", applicationId)
+      .eq("profissional_auth_user_id", user.id)
+      .single();
+
+    if (error || !data) return;
+
+    if (data.status !== "pending") {
+      return;
+    }
+
+    const { error: updateError } = await supabase
+      .from("vaga_candidaturas")
+      .update({ status: "cancelled" })
+      .eq("id", applicationId)
+      .eq("profissional_auth_user_id", user.id);
+
+    if (updateError) return;
+
+    // devolve crédito
+    setCredits((prev) => (prev ?? 0) + 1);
+
+    // atualiza lista
+    await loadMyApplications();
+  } catch {}
+},
         createVacancy: async () => ({ success: false }),
         markNotificationsRead: async () => {},
         getVacancyApplications: async () => [],

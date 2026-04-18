@@ -15,7 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-
+import { criarCandidatura } from "@/lib/services/vaga-candidatura-service";
 import { AppHeader } from "@/components/ui/AppHeader";
 import { AppModal } from "@/components/ui/AppModal";
 import { useApp } from "@/context/AppContext";
@@ -272,7 +272,15 @@ function getVacancyNumericValue(item: VacancyItem): number {
 }
 
 export default function ProfessionalVacanciesScreen() {
- const { vacancies, credits, applyToVacancy, loadVacancies } = useApp();
+const {
+  vacancies,
+  credits,
+  myApplications,
+  applyToVacancy,
+  cancelApplication,
+  loadVacancies,
+  loadMyApplications,
+} = useApp();
 const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -295,13 +303,16 @@ const { user } = useAuth();
   const [showCounterInvalidModal, setShowCounterInvalidModal] = useState(false);
   const [counterInvalidMessage, setCounterInvalidMessage] = useState("");
   const [isWithCounter, setIsWithCounter] = useState(false);
-
+  const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
+  const [showCancelSuccessModal, setShowCancelSuccessModal] = useState(false);
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const counterRef = useRef<TextInput>(null);
 
-  useFocusEffect(
+   useFocusEffect(
     useCallback(() => {
       loadVacancies();
-    }, [loadVacancies])
+      loadMyApplications();
+    }, [loadVacancies, loadMyApplications])
   );
 
   const vacancyList = useMemo(
@@ -356,6 +367,20 @@ const { user } = useAuth();
 
     setIsWithCounter(false);
     setShowConfirmModal(true);
+  };
+    const handleAskCancelApplication = (vacancyId: string) => {
+    const activeApplication = myApplications.find(
+      (application: any) =>
+        application.vaga_id === vacancyId && application.status === "pending"
+    );
+
+    if (!activeApplication?.id) return;
+
+    setSelectedVacancy(
+      vacancyList.find((vacancy) => vacancy.id === vacancyId) || null
+    );
+    setSelectedApplicationId(activeApplication.id);
+    setShowCancelConfirmModal(true);
   };
 
   const handleCounterProposal = (vacancy: VacancyItem) => {
@@ -426,6 +451,28 @@ const { user } = useAuth();
     setLoading(false);
   }
 };
+  const handleConfirmCancelApplication = async () => {
+    if (!selectedApplicationId) return;
+
+    try {
+      setShowCancelConfirmModal(false);
+      setLoading(true);
+
+      await cancelApplication(selectedApplicationId);
+      await loadMyApplications();
+      await loadVacancies();
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowCancelSuccessModal(true);
+      setSelectedApplicationId(null);
+    } catch (error) {
+      console.log("ERRO AO CANCELAR CANDIDATURA:", error);
+      setCounterInvalidMessage("Erro ao desistir da vaga.");
+      setShowCounterInvalidModal(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const headerRightContent = (
     <View style={styles.headerRight}>
@@ -560,6 +607,12 @@ const { user } = useAuth();
             const isExpanded = expandedId === item.id;
             const statusBadge = getStatusBadgeInfo(item.status);
 
+            const activeApplication = myApplications.find(
+              (application: any) =>
+                application.vaga_id === item.id && application.status === "pending"
+            );
+            const hasActiveApplication = !!activeApplication;
+
             return (
               <TouchableOpacity
                 activeOpacity={0.9}
@@ -668,23 +721,35 @@ const { user } = useAuth();
 <Text style={styles.sectionTitle}>Tarefas</Text>
 <Text style={styles.description}>{tasks}</Text>
 
-                    <View style={styles.actionsRow}>
-                      <TouchableOpacity
-                        style={styles.editButton}
-                        activeOpacity={0.85}
-                        onPress={() => handleCounterProposal(item)}
-                      >
-                        <Text style={styles.editButtonText}>Contraproposta</Text>
-                      </TouchableOpacity>
+                                      <View style={styles.actionsRow}>
+  {hasActiveApplication ? (
+    <TouchableOpacity
+      style={styles.publishButton}
+      activeOpacity={0.85}
+      onPress={() => handleAskCancelApplication(item.id)}
+    >
+      <Text style={styles.publishButtonText}>Desistir da vaga</Text>
+    </TouchableOpacity>
+  ) : (
+    <>
+      <TouchableOpacity
+        style={styles.editButton}
+        activeOpacity={0.85}
+        onPress={() => handleCounterProposal(item)}
+      >
+        <Text style={styles.editButtonText}>Contraproposta</Text>
+      </TouchableOpacity>
 
-                      <TouchableOpacity
-                        style={styles.publishButton}
-                        activeOpacity={0.85}
-                        onPress={() => handleApply(item)}
-                      >
-                        <Text style={styles.publishButtonText}>Candidatar</Text>
-                      </TouchableOpacity>
-                    </View>
+      <TouchableOpacity
+        style={styles.publishButton}
+        activeOpacity={0.85}
+        onPress={() => handleApply(item)}
+      >
+        <Text style={styles.publishButtonText}>Candidatar</Text>
+      </TouchableOpacity>
+    </>
+  )}
+</View>
                   </>
                 )}
               </TouchableOpacity>
@@ -787,6 +852,36 @@ const { user } = useAuth();
         primaryAction={{
           label: "Fechar",
           onPress: () => setShowSuccessModal(false),
+        }}
+      />
+
+            <AppModal
+        visible={showCancelConfirmModal}
+        onClose={() => setShowCancelConfirmModal(false)}
+        title="Desistir da vaga"
+        message={`Você deseja desistir da vaga "${
+          selectedVacancy ? getCardTitle(selectedVacancy) : ""
+        }"? O seu crédito será restituído.`}
+        type="confirm"
+        secondaryAction={{
+          label: "Voltar",
+          onPress: () => setShowCancelConfirmModal(false),
+        }}
+        primaryAction={{
+          label: "Desistir",
+          onPress: handleConfirmCancelApplication,
+        }}
+      />
+
+      <AppModal
+        visible={showCancelSuccessModal}
+        onClose={() => setShowCancelSuccessModal(false)}
+        title="Candidatura cancelada"
+        message="Você desistiu da vaga e seu crédito foi restituído. A vaga voltou ao estado original para você."
+        type="success"
+        primaryAction={{
+          label: "Fechar",
+          onPress: () => setShowCancelSuccessModal(false),
         }}
       />
     </View>

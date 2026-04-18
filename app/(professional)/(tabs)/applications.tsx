@@ -27,8 +27,76 @@ const statusInfo = {
 
 type StatusFilter = "all" | "pending" | "accepted" | "rejected" | "cancelled";
 
-function formatCurrency(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+function formatCurrency(value?: number | string | null): string {
+  const numericValue =
+    typeof value === "string" ? Number(value.replace(",", ".")) : value;
+
+  if (numericValue == null || Number.isNaN(numericValue)) {
+    return "R$ 0,00";
+  }
+
+  return Number(numericValue).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function formatHour(value?: string | null) {
+  if (!value) return "--";
+  return String(value).slice(0, 5);
+}
+
+function formatDateWithWeekday(value?: string | null) {
+  if (!value) return "--";
+
+  const raw = value.includes("T") ? value.split("T")[0] : value;
+  const [year, month, day] = raw.split("-").map(Number);
+
+  if (!year || !month || !day) return String(value);
+
+  const date = new Date(year, month - 1, day);
+  const weekday = date.toLocaleDateString("pt-BR", { weekday: "long" });
+
+  return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year} - ${weekday}`;
+}
+
+function getCardTitle(item: any) {
+  return (
+    item?.vaga?.titulo_personalizado ||
+    item?.vaga?.titulo_anuncio ||
+    item?.vaga?.nome_paciente ||
+    item?.vacancy?.title ||
+    "Vaga"
+  );
+}
+
+function getLocationText(item: any) {
+  const cidade = item?.vaga?.cidade || item?.vacancy?.city || "--";
+  const estado = item?.vaga?.estado || item?.vacancy?.state || "--";
+  const bairro = item?.vaga?.bairro || item?.vacancy?.neighborhood || "--";
+
+  return `${cidade}/${estado} • ${bairro}`;
+}
+
+function getDateHourText(item: any) {
+  const data =
+    formatDateWithWeekday(item?.vaga?.data_plantao || item?.vacancy?.shiftDate);
+  const inicio = formatHour(item?.vaga?.horario_inicio);
+  const fim = formatHour(item?.vaga?.horario_fim);
+  const horario =
+    inicio !== "--" && fim !== "--"
+      ? `${inicio} às ${fim}`
+      : item?.vacancy?.workHours || "--";
+
+  return `${data} • ${horario}`;
+}
+
+function getVacancyValue(item: any) {
+  return (
+    item?.vaga?.valor_plantao ??
+    item?.vacancy?.value ??
+    0
+  );
 }
 
 export default function ApplicationsScreen() {
@@ -53,7 +121,7 @@ export default function ApplicationsScreen() {
   const filteredApplications =
     statusFilter === "all"
       ? myApplications
-      : myApplications.filter((item) => item.status === statusFilter);
+      : myApplications.filter((item: any) => item.status === statusFilter);
 
   const headerRightContent = (
     <View style={styles.headerRight}>
@@ -117,7 +185,7 @@ export default function ApplicationsScreen() {
 
       <FlatList
         data={filteredApplications}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item: any) => item.id}
         contentContainerStyle={[styles.list, { paddingBottom: bottomPad + 80 }]}
         showsVerticalScrollIndicator={false}
         onRefresh={loadMyApplications}
@@ -127,79 +195,95 @@ export default function ApplicationsScreen() {
           <View style={styles.emptyState}>
             <Feather name="file-text" size={48} color="#cbd5e1" />
             <Text style={styles.emptyTitle}>Nenhuma candidatura</Text>
-            <Text style={styles.emptyDesc}>Ajuste os filtros ou candidate-se a vagas para vê-las aqui.</Text>
+            <Text style={styles.emptyDesc}>
+              Ajuste os filtros ou candidate-se a vagas para vê-las aqui.
+            </Text>
           </View>
         }
-        renderItem={({ item }) => {
-          const info = statusInfo[item.status];
+        renderItem={({ item }: { item: any }) => {
+          const info =
+            statusInfo[item.status as keyof typeof statusInfo] || statusInfo.pending;
+
           return (
-            <View style={styles.card}>
+            <TouchableOpacity activeOpacity={0.85} style={styles.card}>
               <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>{item.vacancy?.title || "Vaga"}</Text>
+                <Text style={styles.cardTitle}>{getCardTitle(item)}</Text>
                 <View style={[styles.statusBadge, { backgroundColor: info.color + "22" }]}>
                   <Feather name={info.icon} size={12} color={info.color} />
                   <Text style={[styles.statusText, { color: info.color }]}>{info.label}</Text>
                 </View>
               </View>
 
-              {item.vacancy && (
-                <>
-                  <View style={styles.infoRow}>
-                    <Feather name="map-pin" size={13} color="#64748b" />
-                    <Text style={styles.infoText}>
-                      {item.vacancy.city}/{item.vacancy.state} • {item.vacancy.neighborhood}
-                    </Text>
-                  </View>
+              <View style={styles.infoRow}>
+                <Feather name="map-pin" size={13} color="#64748b" />
+                <Text style={styles.infoText}>{getLocationText(item)}</Text>
+              </View>
 
-                  <View style={styles.infoRow}>
-                    <Feather name="calendar" size={13} color="#64748b" />
-                    <Text style={styles.infoText}>
-                      {item.vacancy.shiftDate} • {item.vacancy.workHours}
-                    </Text>
-                  </View>
-                </>
-              )}
+              <View style={styles.infoRow}>
+                <Feather name="calendar" size={13} color="#64748b" />
+                <Text style={styles.infoText}>{getDateHourText(item)}</Text>
+              </View>
 
               <View style={styles.valueRow}>
                 <Text style={styles.valueLabel}>Valor da vaga:</Text>
-                <Text style={styles.value}>{formatCurrency(item.vacancy?.value || 0)}</Text>
+                <Text style={styles.value}>{formatCurrency(getVacancyValue(item))}</Text>
               </View>
 
-              {item.counterProposal && (
+              {!!item.valor_contraproposta && (
                 <View style={styles.valueRow}>
                   <Text style={styles.valueLabel}>Sua contraproposta:</Text>
                   <Text style={[styles.value, { color: "#6366f1" }]}>
-                    {formatCurrency(item.counterProposal)}
+                    {formatCurrency(item.valor_contraproposta)}
                   </Text>
                 </View>
               )}
 
               {item.status === "pending" && (
-                <TouchableOpacity
-                  style={styles.cancelBtn}
-                  onPress={() => setConfirmCancel(item)}
-                  activeOpacity={0.8}
-                >
-                  <Feather name="x" size={14} color="#ef4444" />
-                  <Text style={styles.cancelBtnText}>Desistir da candidatura</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+  <TouchableOpacity
+    style={styles.cancelBtn}
+    onPress={() => {
+      console.log("CLICOU DESISTIR", item.id);
+      setConfirmCancel(item);
+    }}
+    activeOpacity={0.8}
+  >
+    <Feather name="x" size={14} color="#ef4444" />
+    <Text style={styles.cancelBtnText}>Desistir da candidatura</Text>
+  </TouchableOpacity>
+)}
+            </TouchableOpacity>
           );
         }}
       />
 
       <CustomModal
-        visible={!!confirmCancel}
-        onClose={() => setConfirmCancel(null)}
-        title="Desistir da candidatura?"
-        message="Ao desistir antes do aceite, seu crédito será devolvido. Deseja continuar?"
-        icon={<Feather name="alert-circle" size={40} color="#f59e0b" />}
-        buttons={[
-          { label: "Não", onPress: () => setConfirmCancel(null), variant: "secondary" },
-          { label: "Sim, desistir", onPress: handleCancel, variant: "danger" },
-        ]}
-      />
+  visible={!!confirmCancel}
+  onClose={() => {
+    console.log("FECHOU MODAL");
+    setConfirmCancel(null);
+  }}
+  title="Desistir da candidatura?"
+  message="Se você desistir desta candidatura agora, ela será cancelada e 1 crédito será restituído para sua conta. Deseja continuar?"
+  icon={<Feather name="alert-circle" size={40} color="#f59e0b" />}
+  buttons={[
+    {
+      label: "Voltar",
+      onPress: () => {
+        console.log("VOLTOU MODAL");
+        setConfirmCancel(null);
+      },
+      variant: "secondary",
+    },
+    {
+      label: "Sim, desistir",
+      onPress: () => {
+        console.log("CONFIRMOU CANCELAMENTO");
+        handleCancel();
+      },
+      variant: "danger",
+    },
+  ]}
+/>
     </View>
   );
 }
