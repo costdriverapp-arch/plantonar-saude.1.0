@@ -340,12 +340,12 @@ export default function ClientDashboard() {
 
           <View style={styles.heroRight}>
             <TouchableOpacity
-              style={styles.bellBtn}
-              onPress={() => router.push("/notificacoes" as any)}
-              activeOpacity={0.75}
-            >
-              <Feather name="bell" size={20} color="#fff" />
-            </TouchableOpacity>
+  style={styles.bellBtn}
+  onPress={() => router.push("/client-notifications" as any)}
+  activeOpacity={0.75}
+>
+  <Feather name="bell" size={20} color="#fff" />
+</TouchableOpacity>
 
             <View style={styles.accountWrap}>
               <View style={styles.userCircle}>
@@ -536,7 +536,7 @@ export default function ClientDashboard() {
 
             {expandedId === featuredVacancy.id && (
               <>
-                <Text style={styles.vacancySectionTitle}>Descrição</Text>
+                <Text style={styles.vacancySectionTitle}>Descrição da Vaga</Text>
                 <Text style={styles.vacancyDescription}>
                   {getDescriptionText(featuredVacancy)}
                 </Text>

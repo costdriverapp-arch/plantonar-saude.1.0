@@ -98,6 +98,7 @@ export default function ClientLayout() {
     href: null,
   }}
 />
+
       <Tabs.Screen
         name="vacancy-detail"
         options={{

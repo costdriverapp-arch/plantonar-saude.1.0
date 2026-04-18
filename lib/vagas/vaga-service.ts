@@ -45,10 +45,30 @@ export async function carregarVagasDoCliente(
   authUserId: string
 ): Promise<{ success: true; data: any[] } | { success: false; error: string }> {
   const { data, error } = await supabase
-    .from("vagas")
-    .select("*")
-    .eq("auth_user_id", authUserId)
-    .order("created_at", { ascending: false });
+  .from("vagas")
+  .select(`
+    id,
+    status,
+    titulo_anuncio,
+    titulo_personalizado,
+    nome_paciente,
+    cidade,
+    estado,
+    bairro,
+    data_plantao,
+    horario_inicio,
+    horario_fim,
+    valor_plantao,
+    tipo_vaga,
+    turno,
+    solicitante_nome,
+    tarefas,
+    cuidados,
+    patologias,
+    particularidades
+  `)
+  .eq("auth_user_id", authUserId)
+  .order("created_at", { ascending: false });
 
   if (error) {
     return {

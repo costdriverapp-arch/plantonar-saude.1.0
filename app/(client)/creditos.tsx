@@ -10,7 +10,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
+import { AppHeader } from "@/components/ui/AppHeader";
 import { useAuth } from "@/context/AuthContext";
 import { useApp } from "@/context/AppContext";
 import colors, { gradientsByRole } from "@/constants/colors";
@@ -35,78 +35,7 @@ export default function ClientCreditosScreen() {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: botPad + 32 }}
     >
-      <LinearGradient
-        colors={gradientsByRole.client}
-        style={[styles.headerGrad, { paddingTop: topPad + 16 }]}
-      >
-        <View style={styles.headerTopRow}>
-          <Pressable
-            style={styles.headerIconBtn}
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace("/" as any);
-              }
-            }}
-          >
-            <Feather name="arrow-left" size={20} color="#ffffff" />
-          </Pressable>
-
-          <Text style={styles.headerTitle}>Pagamentos</Text>
-
-          <View style={styles.headerIconPlaceholder} />
-        </View>
-
-        <View style={styles.profileRow}>
-          <View style={styles.avatarCircle}>
-            <Ionicons name="person" size={22} color="#ffffff" />
-          </View>
-
-          <View style={{ flex: 1 }}>
-            <Text style={styles.greeting}>Olá, {user.firstName || "Cliente"}</Text>
-            <Text style={styles.headerSub}>Gestão de planos e publicações</Text>
-
-            <View style={styles.ratingRow}>
-              <View style={styles.starsRow}>
-                <Ionicons name="star" size={14} color={colors.light.warning} />
-                <Ionicons name="star" size={14} color={colors.light.warning} />
-                <Ionicons name="star" size={14} color={colors.light.warning} />
-                <Ionicons name="star" size={14} color={colors.light.warning} />
-                <Ionicons name="star" size={14} color={colors.light.warning} />
-              </View>
-              <Text style={styles.ratingText}>5,00</Text>
-            </View>
-          </View>
-
-          {hasSubscription && (
-            <View style={styles.activeBadge}>
-              <Ionicons name="star" size={12} color={colors.light.warning} />
-              <Text style={styles.activeBadgeText}>
-                {isYearly ? "Anual" : "Mensal"}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.statsRow}>
-          <StatCard
-            label="Plano atual"
-            value={isYearly ? "Anual" : isMonthly ? "Mensal" : "Avulso"}
-            icon="card-outline"
-          />
-          <StatCard
-            label="Candidatos"
-            value={String(clientCandidateLimit)}
-            icon="people-outline"
-          />
-          <StatCard
-            label="Validade"
-            value={`${clientJobDurationHours}h`}
-            icon="time-outline"
-          />
-        </View>
-      </LinearGradient>
+     <AppHeader title="Pagamentos" showBack />
 
       <View style={styles.content}>
         <SectionTitle
@@ -150,14 +79,26 @@ export default function ClientCreditosScreen() {
           <Divider />
 
           <PriceRow
-            icon="person-outline"
-            title="Liberar dados do profissional"
-            description="Cobrança separada ao selecionar um candidato"
-            value="Avulso"
-            iconBg="rgba(22,163,74,0.10)"
-            iconColor={colors.light.success}
-            valueColor={colors.light.success}
-          />
+  icon="person-outline"
+  title="Liberar dados do profissional"
+  description="Cobrança separada ao selecionar um candidato"
+  value={
+    <View style={{ alignItems: "flex-end" }}>
+      <Text style={{ fontSize: 11, color: colors.light.mutedForeground }}>
+        a partir de
+      </Text>
+      <Text style={{ fontSize: 16, fontWeight: "800", color: colors.light.success }}>
+        R$ 49,90
+      </Text>
+      <Text style={{ fontSize: 11, color: colors.light.mutedForeground }}>
+        Avulso
+      </Text>
+    </View>
+  }
+  iconBg="rgba(22,163,74,0.10)"
+  iconColor={colors.light.success}
+  valueColor={colors.light.success}
+/>
 
           <Divider />
 
@@ -433,7 +374,7 @@ function PriceRow({
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   description: string;
-  value: string;
+  value: React.ReactNode;
   iconBg: string;
   iconColor: string;
   valueColor: string;
@@ -451,7 +392,11 @@ function PriceRow({
         </View>
       </View>
 
-      <Text style={[styles.priceValue, { color: valueColor }]}>{value}</Text>
+      {typeof value === "string" ? (
+  <Text style={[styles.priceValue, { color: valueColor }]}>{value}</Text>
+) : (
+  value
+)}
     </View>
   );
 }
